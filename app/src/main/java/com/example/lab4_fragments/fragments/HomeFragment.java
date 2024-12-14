@@ -10,14 +10,20 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +38,8 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.lab4_fragments.HomeActivity;
+import com.example.lab4_fragments.models.RouteResponse;
+import com.example.lab4_fragments.network.ApiService;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -45,6 +53,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -52,6 +61,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Marker;
 
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.util.ArrayList;
@@ -60,6 +70,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+import com.google.android.gms.maps.model.Polyline;
+
 
 public class HomeFragment extends Fragment implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -73,6 +92,16 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
     private static final String KEY_CAMERA_POSITION = "camera_position";
     private static final String KEY_ZOOM_LEVEL = "zoom_level";
     private static final float ZOOM_THRESHOLD = 17.0f;
+
+    private String routeStart = "";
+    private String routeEnd = "";
+    private Polyline currentRoutePolyline = null;
+    // Retrofit
+    private Retrofit retrofit;
+    private ApiService apiService;
+
+    // API Key (REEMPLAZAR con tu propia API Key)
+    private static final String ROUTE_API_KEY = "5b3ce3597851110001cf62485dfe553cb7f64ce7947641a29d521509"; // Reemplaza con tu API key
 
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private LocationCallback locationCallback;
@@ -101,7 +130,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
         return fragment;
     }
 
-    public HomeFragment() {}
+    public HomeFragment() {
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -155,6 +185,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
                 }
         );
 
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -193,8 +224,17 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
             }
         }
 
-        createNotificationChannel();
         startLocationUpdates();
+
+        // Inicializar Retrofit
+        retrofit = new Retrofit.Builder()
+                .baseUrl("https://api.openrouteservice.org/") // Asegúrate de que la URL base es correcta
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        apiService = retrofit.create(ApiService.class);
+
+        createNotificationChannel();
     }
 
     private void createNotificationChannel() {
@@ -450,14 +490,74 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
      */
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
-        // Obtener el índice de la edificación desde el tag del marcador
         Object tag = marker.getTag();
         if (tag instanceof Integer) {
             int buildingId = (Integer) tag;
-            navigateToDetailFragment(buildingId);
+            Building building = buildingRepository.getBuildingList().get(buildingId);
+
+            // Convertir la posición del marcador a coordenadas en pantalla
+            if (mMap != null) {
+                Projection projection = mMap.getProjection();
+                Point screenPos = projection.toScreenLocation(marker.getPosition());
+
+                showMarkerPopup(building, screenPos);
+            }
+
             return true;
         }
         return false;
+    }
+
+    private void showMarkerPopup(Building building, Point screenPos) {
+        // Inflar el layout del popup
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View popupView = inflater.inflate(R.layout.popup_marker, null);
+
+        // Crear el PopupWindow primero
+        final PopupWindow markerPopup = new PopupWindow(
+                popupView,
+                550,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true // focusable
+        );
+
+        // Inicializar las vistas del popup
+        ImageView imageView = popupView.findViewById(R.id.popup_image);
+        TextView titleTextView = popupView.findViewById(R.id.popup_title);
+        Button irButton = popupView.findViewById(R.id.popup_btn_ir);
+        Button detallesButton = popupView.findViewById(R.id.popup_btn_detalles);
+
+        // Establecer la información de la locación
+        titleTextView.setText(building.getTitle());
+        if (building.getImageResId() != 0) {
+            imageView.setImageResource(building.getImageResId());
+        } else {
+            imageView.setImageResource(R.drawable.ic_building_placeholder);
+        }
+
+        // Configurar acciones de los botones
+        irButton.setOnClickListener(v -> {
+            setupRouteButton(building.getLatitude(),building.getLongitude());
+        });
+
+        detallesButton.setOnClickListener(v -> {
+            // Ir al detalle de la locación
+            DetailFragment detailFragment = DetailFragment.newInstance(buildingRepository.getBuildingList().indexOf(building));
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentContainerView, detailFragment)
+                    .addToBackStack(null)
+                    .commit();
+
+            // Cerrar el popup
+            if (markerPopup != null && markerPopup.isShowing()) {
+                markerPopup.dismiss();
+            }
+        });
+
+        // Permitir cerrar el popup al tocar fuera
+        markerPopup.setOutsideTouchable(true);
+        markerPopup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        markerPopup.showAtLocation(getView(), Gravity.NO_GRAVITY, screenPos.x, screenPos.y - 150);
     }
 
     /**
@@ -523,5 +623,138 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback, Google
             outState.putParcelable(KEY_CAMERA_POSITION, mMap.getCameraPosition().target);
             outState.putFloat(KEY_ZOOM_LEVEL, mMap.getCameraPosition().zoom);
         }
+    }
+
+    private void createRoute() {
+        if (routeStart.isEmpty() || routeEnd.isEmpty()) {
+            Toast.makeText(getContext(), "Selecciona ambos puntos: origen y destino.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Mostrar un indicador de progreso (opcional)
+        Toast.makeText(getContext(), "Calculando ruta...", Toast.LENGTH_SHORT).show();
+
+        // Preparar la llamada a la API
+        Call<RouteResponse> call = apiService.getRoute(ROUTE_API_KEY, routeStart, routeEnd);
+
+        // Ejecutar la llamada de manera asíncrona
+        call.enqueue(new Callback<RouteResponse>() {
+            @Override
+            public void onResponse(Call<RouteResponse> call, Response<RouteResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    drawRoute(response.body());
+                } else {
+                    Log.e(TAG, "Error en la respuesta de la API: " + response.code());
+                    Toast.makeText(getContext(), "Error al obtener la ruta.", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<RouteResponse> call, Throwable t) {
+                Log.e(TAG, "Fallo en la llamada a la API: " + t.getMessage());
+                Toast.makeText(getContext(), "Fallo al conectar con el servicio de rutas.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Dibuja la ruta en el mapa utilizando la respuesta de la API.
+     *
+     * @param routeResponse La respuesta de la API que contiene las coordenadas de la ruta.
+     */
+    private void drawRoute(RouteResponse routeResponse) {
+        if (routeResponse.getFeatures().isEmpty()) {
+            Toast.makeText(getContext(), "No se encontró una ruta válida.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<List<Double>> coordinates = routeResponse.getFeatures().get(0).getGeometry().getCoordinates();
+        PolylineOptions polylineOptions = new PolylineOptions();
+
+        for (List<Double> coordinate : coordinates) {
+            if (coordinate.size() >= 2) {
+                double longitude = coordinate.get(0);
+                double latitude = coordinate.get(1);
+                polylineOptions.add(new LatLng(latitude, longitude));
+            }
+        }
+
+        polylineOptions.color(Color.parseColor("#D32F2F"));
+        polylineOptions.width(10);
+
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                currentRoutePolyline = mMap.addPolyline(polylineOptions);
+                adjustCameraView(polylineOptions);
+            });
+        }
+    }
+
+    /**
+     * Ajusta la cámara para que toda la ruta sea visible.
+     *
+     * @param polylineOptions Las opciones de la polilínea que representa la ruta.
+     */
+    private void adjustCameraView(PolylineOptions polylineOptions) {
+        // Obtener todos los puntos de la ruta
+        List<LatLng> points = polylineOptions.getPoints();
+        if (points.isEmpty()) return;
+
+        // Calcular los límites de la cámara
+        double minLat = points.get(0).latitude;
+        double maxLat = points.get(0).latitude;
+        double minLng = points.get(0).longitude;
+        double maxLng = points.get(0).longitude;
+
+        for (LatLng point : points) {
+            if (point.latitude < minLat) minLat = point.latitude;
+            if (point.latitude > maxLat) maxLat = point.latitude;
+            if (point.longitude < minLng) minLng = point.longitude;
+            if (point.longitude > maxLng) maxLng = point.longitude;
+        }
+
+        LatLng southwest = new LatLng(minLat, minLng);
+        LatLng northeast = new LatLng(maxLat, maxLng);
+
+        com.google.android.gms.maps.model.LatLngBounds bounds = new com.google.android.gms.maps.model.LatLngBounds(southwest, northeast);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
+    }
+
+    private void getCurrentCoordinates(CurrentCoordinatesCallback callback) {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(requireActivity(), location -> {
+                        if (location != null) {
+                            double latitude = location.getLatitude();
+                            double longitude = location.getLongitude();
+                            callback.onCoordinatesObtained(latitude, longitude);
+                        } else {
+                            Toast.makeText(getContext(), "No se pudo obtener la ubicación actual.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        } else {
+            Toast.makeText(getContext(), "Permiso de ubicación denegado.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public interface CurrentCoordinatesCallback {
+        void onCoordinatesObtained(double latitude, double longitude);
+    }
+
+    private void setupRouteButton(Double latitudeEnd,Double longitudeEnd) {
+        routeStart = "";
+        routeEnd = longitudeEnd + "," + latitudeEnd;
+        if (currentRoutePolyline != null) {
+            currentRoutePolyline.remove();
+            currentRoutePolyline = null;
+        }
+
+        getCurrentCoordinates((latitude, longitude) -> {
+            routeStart = longitude + "," + latitude;
+            LatLng startLatLng = new LatLng(latitude, longitude);
+            mMap.addMarker(new MarkerOptions().position(startLatLng).title("Origen"));
+            createRoute();
+        });
     }
 }
