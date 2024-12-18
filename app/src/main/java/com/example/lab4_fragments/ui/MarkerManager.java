@@ -16,7 +16,7 @@ import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import com.example.lab4_fragments.Building;
+import com.example.lab4_fragments.dao.building.Building;
 import com.example.lab4_fragments.BuildingRepository;
 import com.example.lab4_fragments.R;
 import com.example.lab4_fragments.fragments.HomeFragment;
@@ -152,8 +152,8 @@ public class MarkerManager {
         Button detallesButton = popupView.findViewById(R.id.popup_btn_detalles);
 
         titleTextView.setText(building.getTitle());
-        if (building.getImageResId() != 0) {
-            imageView.setImageResource(building.getImageResId());
+        if (Integer.parseInt(building.getImageResId()) != 0) {
+            imageView.setImageResource(Integer.parseInt(building.getImageResId()));
         } else {
             imageView.setImageResource(R.drawable.ic_building_placeholder);
         }

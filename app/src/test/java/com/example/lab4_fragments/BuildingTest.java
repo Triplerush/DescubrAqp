@@ -4,6 +4,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import com.example.lab4_fragments.dao.building.Building;
+
 public class BuildingTest {
 
     @Test
@@ -30,15 +32,15 @@ public class BuildingTest {
     public void testBuildingWithEdgeValues() {
         Building building = new Building(
                 "",                // Título vacío
-                "",                // Categoría vacía
+                1,                // Categoría vacía
                 null,              // Descripción nula
-                Integer.MAX_VALUE, // Valor máximo para el ID de imagen
+                "2147483647", // Valor máximo para el ID de imagen
                 Double.MAX_VALUE,  // Valor máximo para la latitud
                 Double.MIN_VALUE   // Valor mínimo para la longitud
         );
 
         assertEquals("", building.getTitle());
-        assertEquals("", building.getCategory());
+        assertEquals("", building.getCategoryId());
         assertNull(building.getDescription());
         assertEquals(Integer.MAX_VALUE, building.getImageResId());
         assertEquals(Double.MAX_VALUE, building.getLatitude(), 0.0001);
@@ -51,13 +53,13 @@ public class BuildingTest {
                 null,  // Título nulo
                 null,  // Categoría nula
                 null,  // Descripción nula
-                -1,    // ID de imagen negativo (valor inválido)
+                "-1",    // ID de imagen negativo (valor inválido)
                 -91.0, // Latitud fuera del rango permitido
                 181.0  // Longitud fuera del rango permitido
         );
 
         assertNull(building.getTitle());
-        assertNull(building.getCategory());
+        assertNull(building.getCategoryId());
         assertNull(building.getDescription());
         assertTrue("Image ID should not be negative", building.getImageResId() < 0);
         assertTrue("Latitude is out of range", building.getLatitude() < -90 || building.getLatitude() > 90);

@@ -28,7 +28,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.lab4_fragments.Building;
+import com.example.lab4_fragments.dao.building.Building;
 import com.example.lab4_fragments.BuildingRepository;
 import com.example.lab4_fragments.dao.comment.Comment;
 import com.example.lab4_fragments.CommentAdapter;
@@ -131,7 +131,7 @@ public class DetailFragment extends Fragment {
             building = buildingList.get(buildingId);
             titleTextView.setText(building.getTitle());
             descriptionTextView.setText(building.getDescription());
-            imageView.setImageResource(building.getImageResId());
+            imageView.setImageResource(Integer.parseInt(building.getImageResId()));
 
             // Configurar el audio
             String audioFileName = "audedif" + (buildingId + 1); // Sin extensión

@@ -8,6 +8,8 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+import com.example.lab4_fragments.dao.building.Building;
+
 public class BuildingAdapterTest {
 
     private BuildingAdapter adapter;

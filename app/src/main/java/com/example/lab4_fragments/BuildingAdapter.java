@@ -1,6 +1,5 @@
 package com.example.lab4_fragments;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +8,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.lab4_fragments.dao.building.Building;
+
 import java.util.List;
 
 public class BuildingAdapter extends RecyclerView.Adapter<BuildingAdapter.BuildingViewHolder> {
@@ -37,9 +39,9 @@ public class BuildingAdapter extends RecyclerView.Adapter<BuildingAdapter.Buildi
     public void onBindViewHolder(@NonNull BuildingViewHolder holder, int position) {
         Building building = buildingList.get(position);
         holder.title.setText(building.getTitle());
-        holder.category.setText(building.getCategory()); // Establecer categoría
+        holder.category.setText(building.getCategoryId().toString()); // Establecer categoría
         holder.description.setText(building.getDescription());
-        holder.image.setImageResource(building.getImageResId());
+        holder.image.setImageResource(Integer.parseInt(building.getImageResId()));
 
         // Manejar el clic en el elemento
         holder.itemView.setOnClickListener(v -> {

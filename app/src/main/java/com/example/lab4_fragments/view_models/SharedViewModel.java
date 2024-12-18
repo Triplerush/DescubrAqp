@@ -3,7 +3,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.lab4_fragments.Building;
+import com.example.lab4_fragments.dao.building.Building;
 
 import java.util.List;
 

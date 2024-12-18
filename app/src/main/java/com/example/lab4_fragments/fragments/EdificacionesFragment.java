@@ -20,11 +20,11 @@ import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import com.example.lab4_fragments.Building;
+import com.example.lab4_fragments.dao.building.Building;
 import com.example.lab4_fragments.BuildingAdapter;
 import com.example.lab4_fragments.BuildingRepository;
-import com.example.lab4_fragments.fragments.DetailFragment;
 import com.example.lab4_fragments.R;
+import com.example.lab4_fragments.dao.categoria.Categoria;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +67,7 @@ public class EdificacionesFragment extends Fragment {
         // Inicializar BuildingRepository y cargar la lista de edificaciones
         buildingRepository = new BuildingRepository(getContext());
         buildingList = buildingRepository.getBuildingList();
+        buildingRepository.initializeBuildings(requireContext());
         filteredBuildingList.addAll(buildingList);
 
         // Inicializar el adaptador con la lista filtrada
@@ -125,7 +126,9 @@ public class EdificacionesFragment extends Fragment {
             if (checkedId == R.id.rb_title) {
                 matches = building.getTitle().toLowerCase().contains(lowerText);
             } else if (checkedId == R.id.rb_category) {
-                matches = building.getCategory().toLowerCase().contains(lowerText);
+                Integer categoryId=building.getCategoryId();
+                String categoria = getCategoryNameById(categoryId);
+                matches = categoria.toLowerCase().contains(lowerText);
             } else if (checkedId == R.id.rb_description) {
                 matches = building.getDescription().toLowerCase().contains(lowerText);
             }
@@ -140,7 +143,16 @@ public class EdificacionesFragment extends Fragment {
         // Actualizar la vista vacía
         updateEmptyView();
     }
-
+    public String getCategoryNameById(int categoryId) {
+        // Aquí deberías tener una lista de categorías o consultar desde la base de datos
+        List<Categoria> categoriaList = buildingRepository.getAllCategorias(); // Un método que retorna todas las categorías
+        for (Categoria categoria : categoriaList) {
+            if (categoria.getCategoryId() == categoryId) {
+                return categoria.getCategoryName();
+            }
+        }
+        return ""; // Retorna cadena vacía si no encuentra coincidencias
+    }
     private void updateEmptyView() {
         if (filteredBuildingList.isEmpty()) {
             recyclerView.setVisibility(View.GONE);
