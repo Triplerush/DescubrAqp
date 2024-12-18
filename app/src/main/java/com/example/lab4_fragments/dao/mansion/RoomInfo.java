@@ -1,6 +1,11 @@
-package com.example.lab4_fragments;
+package com.example.lab4_fragments.dao.mansion;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
+@Entity(tableName = "room_info")
 public class RoomInfo {
+    @PrimaryKey(autoGenerate = true)
+    private int id;
     private String title;
     private String description;
     private int imageUrl;
@@ -9,6 +14,14 @@ public class RoomInfo {
         this.title = title;
         this.description = description;
         this.imageUrl = imageUrl;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getTitle() {
@@ -22,5 +35,6 @@ public class RoomInfo {
     public int getImageUrl() {
         return imageUrl;
     }
+
 }
 

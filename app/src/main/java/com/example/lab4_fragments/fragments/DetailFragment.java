@@ -1,7 +1,7 @@
 package com.example.lab4_fragments.fragments;
 
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -22,17 +22,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.example.lab4_fragments.Building;
 import com.example.lab4_fragments.BuildingRepository;
-import com.example.lab4_fragments.Comment;
+import com.example.lab4_fragments.dao.comment.Comment;
 import com.example.lab4_fragments.CommentAdapter;
 import com.example.lab4_fragments.R;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import com.example.lab4_fragments.database.AppDatabase;
 
 public class DetailFragment extends Fragment {
     private static final String ARG_BUILDING_ID = "building_id";
@@ -55,6 +50,8 @@ public class DetailFragment extends Fragment {
     private Handler handler;
     private Runnable updateSeekBarRunnable;
 
+    private AppDatabase appDatabase;
+
     public static DetailFragment newInstance(int buildingId) {
         DetailFragment fragment = new DetailFragment();
         Bundle args = new Bundle();
@@ -67,13 +64,13 @@ public class DetailFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        // Obtener el ID del edificio de los argumentos
         if (getArguments() != null) {
             buildingId = getArguments().getInt(ARG_BUILDING_ID);
         }
 
         // Inflar el diseño del fragmento
         View view = inflater.inflate(R.layout.fragment_detail, container, false);
+        appDatabase = AppDatabase.getInstance(getContext());
 
         // Inicializar las vistas
         ImageView imageView = view.findViewById(R.id.image_view);
@@ -222,71 +219,39 @@ public class DetailFragment extends Fragment {
      * Carga los comentarios almacenados para el edificio actual desde un archivo.
      */
     private void loadComments() {
-        File file = new File(getContext().getFilesDir(), "comments_" + buildingId + ".txt");
-        if (file.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split("\\|");
-                    if (parts.length == 3) {
-                        String username = parts[0];
-                        String content = parts[1];
-                        float rating = Float.parseFloat(parts[2]);
-                        commentList.add(new Comment(username, content, rating));
-                    }
-                }
-                commentAdapter.notifyDataSetChanged();
-                Log.d(TAG, "Comentarios cargados correctamente desde el archivo");
-            } catch (IOException e) {
-                Log.e(TAG, "Error al leer comentarios: " + e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            Log.d(TAG, "No se encontraron comentarios previos para el edificio ID: " + buildingId);
-        }
+        new Thread(() -> {
+            commentList.clear();
+            commentList.addAll(appDatabase.commentDao().getCommentsForBuilding(buildingId));
+            requireActivity().runOnUiThread(() -> commentAdapter.notifyDataSetChanged());
+        }).start();
     }
 
     /**
      * Agrega un nuevo comentario a la lista y lo guarda en el archivo correspondiente.
      */
     private void addComment() {
-        String loggedInUser = "Usuario"; // Cambiar según la lógica de autenticación
-
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("UserPrefs", getActivity().MODE_PRIVATE);
+        String loggedInUser = sharedPreferences.getString("loggedInUser", "Usuario");
         String commentText = commentInput.getText().toString().trim();
         float rating = ratingBar.getRating();
-        if (!commentText.isEmpty()) {
-            Comment newComment = new Comment(loggedInUser, commentText, rating);
-            commentList.add(newComment);
-            commentAdapter.notifyItemInserted(commentList.size() - 1);
-            commentsRecyclerView.scrollToPosition(commentList.size() - 1);
 
-            saveCommentToFile(loggedInUser, commentText, rating);
-            commentInput.setText("");
-            ratingBar.setRating(0);
-            Toast.makeText(getContext(), "Comentario agregado", Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Nuevo comentario agregado por " + loggedInUser);
+        if (!commentText.isEmpty()) {
+            Comment newComment = new Comment(buildingId, loggedInUser, commentText, rating);
+
+            new Thread(() -> {
+                appDatabase.commentDao().insertComment(newComment);
+
+                requireActivity().runOnUiThread(() -> {
+                    commentList.add(newComment);
+                    commentAdapter.notifyItemInserted(commentList.size() - 1);
+                    commentsRecyclerView.scrollToPosition(commentList.size() - 1);
+                    commentInput.setText("");
+                    ratingBar.setRating(0);
+                    Toast.makeText(getContext(), "Comentario agregado", Toast.LENGTH_SHORT).show();
+                });
+            }).start();
         } else {
             Toast.makeText(getContext(), "Por favor, ingresa un comentario.", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "Intento de agregar un comentario vacío");
-        }
-    }
-
-    /**
-     * Guarda un comentario en el archivo correspondiente al edificio.
-     *
-     * @param username Nombre de usuario
-     * @param comment  Texto del comentario
-     * @param rating   Calificación otorgada
-     */
-    private void saveCommentToFile(String username, String comment, float rating) {
-        File file = new File(getContext().getFilesDir(), "comments_" + buildingId + ".txt");
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
-            writer.write(username + "|" + comment + "|" + rating);
-            writer.newLine();
-            Log.d(TAG, "Comentario guardado en el archivo: " + file.getName());
-        } catch (IOException e) {
-            Log.e(TAG, "Error al guardar comentario: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -319,4 +284,5 @@ public class DetailFragment extends Fragment {
             Log.d(TAG, "MediaPlayer pausado en onPause");
         }
     }
+
 }

@@ -42,8 +42,6 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.recyclerview)
     testImplementation(libs.junit)
-    testImplementation(libs.core)
-    testImplementation(libs.core)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
     implementation("com.github.hannesa2:panoramagl:1.9.6")
@@ -63,4 +61,14 @@ dependencies {
     androidTestImplementation ("androidx.test.espresso:espresso-contrib:3.5.1")
 
     androidTestImplementation ("androidx.test.espresso:espresso-intents:3.5.1")
+
+    // Versión de Room
+    val room_version = "2.6.1"
+
+    // Librerías de Room
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+    // Procesador de anotaciones para Room (necesario para generar las clases)
+    annotationProcessor("androidx.room:room-compiler:$room_version")
 }

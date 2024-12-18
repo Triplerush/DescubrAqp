@@ -7,10 +7,11 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 
-import com.example.lab4_fragments.Door;
+import com.example.lab4_fragments.dao.mansion.Door;
 import com.example.lab4_fragments.R;
-import com.example.lab4_fragments.Room;
-import com.example.lab4_fragments.RoomInfo;
+import com.example.lab4_fragments.dao.mansion.RoomEntity;
+import com.example.lab4_fragments.dao.mansion.RoomInfo;
+import com.example.lab4_fragments.database.AppDatabase;
 import com.example.lab4_fragments.fragments.DetailRoomFragment;
 
 import java.io.BufferedReader;
@@ -35,29 +36,31 @@ public class MansionView extends View {
     private Paint paintTextVertical;
     private static final String TAG = "MansionView";
 
-    private List<Room> rooms = new ArrayList<>();
+    private List<RoomEntity> rooms = new ArrayList<>();
     private List<Door> doors = new ArrayList<>();
     private Map<Integer, RoomInfo> roomDataMap = new HashMap<>();
+
+    private AppDatabase appDatabase;
 
     public MansionView(Context context) {
         super(context);
         init();
-        loadCoordinates(context);
-        loadRoomData(context);
+        appDatabase = AppDatabase.getInstance(context);
+        insertInitialData(context, this::loadFromDatabase);
     }
 
     public MansionView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
-        loadCoordinates(context);
-        loadRoomData(context);
+        appDatabase = AppDatabase.getInstance(context);
+        insertInitialData(context, this::loadFromDatabase);
     }
 
     public MansionView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
-        loadCoordinates(context);
-        loadRoomData(context);
+        appDatabase = AppDatabase.getInstance(context);
+        insertInitialData(context, this::loadFromDatabase);
     }
 
     private void init() {
@@ -85,6 +88,36 @@ public class MansionView extends View {
         paintTextVertical.setAntiAlias(true);
     }
 
+    private void loadFromDatabase() {
+        new Thread(() -> {
+            rooms.clear();
+            doors.clear();
+            roomDataMap.clear();
+
+            // Cargar cuartos
+            List<RoomEntity> roomEntities = appDatabase.mansionDao().getAllRooms();
+            for (RoomEntity roomEntity : roomEntities) {
+                rooms.add(new RoomEntity(roomEntity.getName(), roomEntity.getX1(), roomEntity.getY1(), roomEntity.getX2(), roomEntity.getY2()));
+            }
+
+            // Cargar puertas
+            List<Door> doorEntities = appDatabase.mansionDao().getAllDoors();
+            for (Door doorEntity : doorEntities) {
+                doors.add(new Door(doorEntity.getX1(), doorEntity.getY1(), doorEntity.getX2(), doorEntity.getY2()));
+            }
+
+            // Cargar información de los cuartos
+            List<RoomInfo> roomInfoEntities = appDatabase.mansionDao().getAllRoomInfo();
+            for (RoomInfo roomInfoEntity : roomInfoEntities) {
+                roomDataMap.put(roomInfoEntity.getId(), new RoomInfo(roomInfoEntity.getTitle(), roomInfoEntity.getDescription(), roomInfoEntity.getImageUrl()));
+            }
+
+            // Refrescar la vista
+            postInvalidate();
+        }).start();
+    }
+
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -93,7 +126,7 @@ public class MansionView extends View {
 
             Log.d(TAG, "Touch detected at: (" + touchX + ", " + touchY + ")");
 
-            for (Room room : rooms) {
+            for (RoomEntity room : rooms) {
                 if (isTouchInsideRoom(touchX, touchY, room)) {
                     Log.d(TAG, "Touched inside: " + room.getName());
                     handleRoomTouch(room);
@@ -113,7 +146,7 @@ public class MansionView extends View {
      * @param room   Cuarto a verificar
      * @return Verdadero si el toque está dentro del cuarto, falso en caso contrario
      */
-    private boolean isTouchInsideRoom(float touchX, float touchY, Room room) {
+    private boolean isTouchInsideRoom(float touchX, float touchY, RoomEntity room) {
         float x1 = room.getX1();
         float y1 = room.getY1();
         float x2 = room.getX2();
@@ -129,7 +162,7 @@ public class MansionView extends View {
      *
      * @param room Cuarto que ha sido tocado
      */
-    private void handleRoomTouch(Room room) {
+    private void handleRoomTouch(RoomEntity room) {
         String name = room.getName();
         String roomNumberStr = name.replaceAll("[^0-9]", "");
 
@@ -171,7 +204,7 @@ public class MansionView extends View {
         super.onDraw(canvas);
 
         // Dibujar los contornos de los cuartos
-        for (Room room : rooms) {
+        for (RoomEntity room : rooms) {
             float x1 = room.getX1();
             float y1 = room.getY1();
             float x2 = room.getX2();
@@ -207,94 +240,87 @@ public class MansionView extends View {
         }
     }
 
-    /**
-     * Carga los datos de los cuartos desde el archivo "cuartos.txt" en la carpeta assets.
-     *
-     * @param context Contexto de la aplicación
-     */
-    public void loadRoomData(Context context) {
-        try {
-            InputStream inputStream = context.getAssets().open("cuartos.txt"); // Asegúrate de que el archivo esté en la carpeta assets
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-            int roomNumber = -1;
-            String title = null;
-            String description = null;
-            String imageUrl = null;
+    private void insertInitialData(Context context, Runnable onInsertComplete) {
+        new Thread(() -> {
+            if (appDatabase.mansionDao().getAllRooms().isEmpty() &&
+                    appDatabase.mansionDao().getAllDoors().isEmpty()) {
 
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("Cuarto:")) {
-                    roomNumber = Integer.parseInt(line.split(":")[1].trim());
-                } else if (line.startsWith("Título:")) {
-                    title = line.split(":")[1].trim();
-                } else if (line.startsWith("Descripción:")) {
-                    description = line.substring(line.indexOf(":") + 1).trim();
-                } else if (line.startsWith("URL de la imagen:")) {
-                    imageUrl = line.split(":")[1].trim();
+                try {
+                    InputStream coordinatesStream = context.getAssets().open("coordenadas.txt");
+                    BufferedReader coordinatesReader = new BufferedReader(new InputStreamReader(coordinatesStream));
+                    String line;
 
-                    // Convertir el nombre de la imagen en un recurso drawable
-                    int imageResId = context.getResources().getIdentifier(imageUrl, "drawable", context.getPackageName());
+                    while ((line = coordinatesReader.readLine()) != null) {
+                        line = line.trim();
+                        if (line.isEmpty() || line.startsWith("#")) {
+                            continue; // Ignorar líneas vacías y comentarios
+                        }
 
-                    // Guardar la información si todos los datos están completos
-                    if (roomNumber != -1 && title != null && description != null && imageResId != 0) {
-                        roomDataMap.put(roomNumber, new RoomInfo(title, description, imageResId));
-                        roomNumber = -1;
-                        title = null;
-                        description = null;
-                        imageUrl = null;
+                        String[] parts = line.split(" ");
+                        if (parts[0].equalsIgnoreCase("Cuarto")) {
+                            // Insertar cuarto en la base de datos
+                            String name = parts[1];
+                            float x1 = Float.parseFloat(parts[2]);
+                            float y1 = Float.parseFloat(parts[3]);
+                            float x2 = Float.parseFloat(parts[4]);
+                            float y2 = Float.parseFloat(parts[5]);
+                            appDatabase.mansionDao().insertRoom(new RoomEntity(name, x1, y1, x2, y2));
+                        } else if (parts[0].equalsIgnoreCase("Puerta")) {
+                            // Insertar puerta en la base de datos
+                            float x1 = Float.parseFloat(parts[1]);
+                            float y1 = Float.parseFloat(parts[2]);
+                            float x2 = Float.parseFloat(parts[3]);
+                            float y2 = Float.parseFloat(parts[4]);
+                            appDatabase.mansionDao().insertDoor(new Door(x1, y1, x2, y2));
+                        }
                     }
+                    coordinatesReader.close();
+
+                    // Leer y procesar datos de cuartos.txt
+                    InputStream roomInfoStream = context.getAssets().open("cuartos.txt");
+                    BufferedReader roomInfoReader = new BufferedReader(new InputStreamReader(roomInfoStream));
+                    String title = null, description = null, imageUrl = null;
+                    int roomNumber = -1;
+
+                    while ((line = roomInfoReader.readLine()) != null) {
+                        if (line.startsWith("Cuarto:")) {
+                            roomNumber = Integer.parseInt(line.split(":")[1].trim());
+                        } else if (line.startsWith("Título:")) {
+                            title = line.split(":")[1].trim();
+                        } else if (line.startsWith("Descripción:")) {
+                            description = line.substring(line.indexOf(":") + 1).trim();
+                        } else if (line.startsWith("URL de la imagen:")) {
+                            imageUrl = line.split(":")[1].trim();
+
+                            // Convertir URL de imagen en recurso drawable
+                            int imageResId = context.getResources().getIdentifier(imageUrl, "drawable", context.getPackageName());
+
+                            if (roomNumber != -1 && title != null && description != null && imageResId != 0) {
+                                appDatabase.mansionDao().insertRoomInfo(new RoomInfo(title, description, imageResId));
+                            }
+
+                            // Reiniciar variables
+                            roomNumber = -1;
+                            title = null;
+                            description = null;
+                            imageUrl = null;
+                        }
+                    }
+                    roomInfoReader.close();
+
+                    Log.d("MansionView", "Datos iniciales insertados en la base de datos.");
+                } catch (IOException e) {
+                    Log.e("MansionView", "Error al leer archivos de datos iniciales", e);
                 }
+            } else {
+                Log.d("MansionView", "Los datos iniciales ya están insertados en la base de datos.");
             }
-            reader.close();
-        } catch (Exception e) {
-            Log.e(TAG, "Error al cargar datos de cuartos", e);
-        }
+
+            // Ejecutar el callback una vez completada la inserción
+            if (onInsertComplete != null) {
+                post(onInsertComplete);
+            }
+        }).start();
     }
 
-    /**
-     * Carga las coordenadas de los cuartos y puertas desde el archivo "coordenadas.txt" en la carpeta assets.
-     *
-     * @param context Contexto de la aplicación
-     */
-    private void loadCoordinates(Context context) {
-        try {
-            InputStream inputStream = context.getAssets().open("coordenadas.txt");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("#")) {
-                    continue; // Ignorar líneas vacías y comentarios
-                }
-
-                String[] parts = line.split(" ");
-                if (parts[0].equalsIgnoreCase("Cuarto")) {
-                    if (parts.length < 6) {
-                        Log.e(TAG, "Formato incorrecto para Cuarto: " + line);
-                        continue;
-                    }
-                    String name = parts[1];
-                    float x1 = Float.parseFloat(parts[2]);
-                    float y1 = Float.parseFloat(parts[3]);
-                    float x2 = Float.parseFloat(parts[4]);
-                    float y2 = Float.parseFloat(parts[5]);
-                    rooms.add(new Room(name, x1, y1, x2, y2));
-                } else if (parts[0].equalsIgnoreCase("Puerta")) {
-                    if (parts.length < 5) {
-                        Log.e(TAG, "Formato incorrecto para Puerta: " + line);
-                        continue;
-                    }
-                    float x1 = Float.parseFloat(parts[1]);
-                    float y1 = Float.parseFloat(parts[2]);
-                    float x2 = Float.parseFloat(parts[3]);
-                    float y2 = Float.parseFloat(parts[4]);
-                    doors.add(new Door(x1, y1, x2, y2));
-                }
-            }
-            reader.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Error al cargar coordenadas", e);
-        }
-    }
 }
