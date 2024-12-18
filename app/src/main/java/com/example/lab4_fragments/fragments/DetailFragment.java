@@ -1,16 +1,17 @@
 package com.example.lab4_fragments.fragments;
 
+import android.Manifest;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.content.SharedPreferences;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.util.Log;
-import android.widget.SeekBar;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,20 +19,29 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RatingBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import com.example.lab4_fragments.Building;
 import com.example.lab4_fragments.BuildingRepository;
 import com.example.lab4_fragments.dao.comment.Comment;
 import com.example.lab4_fragments.CommentAdapter;
 import com.example.lab4_fragments.R;
+import com.example.lab4_fragments.AudioService;
+import com.example.lab4_fragments.database.AppDatabase;
 import java.util.ArrayList;
 import java.util.List;
-import com.example.lab4_fragments.database.AppDatabase;
 
 public class DetailFragment extends Fragment {
     private static final String ARG_BUILDING_ID = "building_id";
     private static final String TAG = "DetailFragment";
+    private static final int REQUEST_CODE_POST_NOTIFICATIONS = 1001;
 
     private int buildingId;
     private RecyclerView commentsRecyclerView;
@@ -44,11 +54,32 @@ public class DetailFragment extends Fragment {
     private RatingBar ratingBar;
     private BuildingRepository buildingRepository;
     private Building building;
-    private MediaPlayer mediaPlayer;
     private Button btnPlayPause;
     private SeekBar audioSeekBar;
-    private Handler handler;
+    private boolean isPlaying = false;
+    private int audioResId = 0;
+
+    // Variables para el Servicio Vinculado
+    private AudioService audioService;
+    private boolean isBound = false;
+    private Handler handler = new Handler();
     private Runnable updateSeekBarRunnable;
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AudioService.LocalBinder binder = (AudioService.LocalBinder) service;
+            audioService = binder.getService();
+            isBound = true;
+            initializeSeekBar();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBound = false;
+            audioService = null;
+        }
+    };
 
     private AppDatabase appDatabase;
 
@@ -102,21 +133,18 @@ public class DetailFragment extends Fragment {
             descriptionTextView.setText(building.getDescription());
             imageView.setImageResource(building.getImageResId());
 
-            // Configurar el MediaPlayer
+            // Configurar el audio
             String audioFileName = "audedif" + (buildingId + 1); // Sin extensión
-            int resId = getResources().getIdentifier(audioFileName, "raw", getContext().getPackageName());
+            audioResId = getResources().getIdentifier(audioFileName, "raw", getContext().getPackageName());
 
-            if (resId != 0) { // Verificar que el recurso exista
-                mediaPlayer = MediaPlayer.create(getContext(), resId);
-                if (mediaPlayer != null) {
-                    setupAudioPlayer();
-                } else {
-                    Toast.makeText(getContext(), "No se pudo inicializar el reproductor", Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "MediaPlayer.create retornó null para el recurso: " + audioFileName);
-                }
+            if (audioResId != 0) { // Verificar que el recurso exista
+                btnPlayPause.setEnabled(true);
+                audioSeekBar.setEnabled(false); // Inicialmente deshabilitada hasta que se vincule el servicio
             } else {
                 Toast.makeText(getContext(), "Archivo de audio no encontrado: " + audioFileName, Toast.LENGTH_SHORT).show();
                 Log.e(TAG, "Recurso de audio no encontrado: " + audioFileName);
+                btnPlayPause.setEnabled(false);
+                audioSeekBar.setEnabled(false);
             }
         } else {
             // Manejar el caso donde el edificio no se encuentra
@@ -129,6 +157,9 @@ public class DetailFragment extends Fragment {
 
         // Cargar comentarios existentes
         loadComments();
+
+        // Verificar y solicitar permiso de notificaciones si es necesario
+        checkAndRequestNotificationPermission();
 
         // Configurar listeners para los botones
         btnView360.setOnClickListener(v -> {
@@ -149,74 +180,174 @@ public class DetailFragment extends Fragment {
 
         submitCommentButton.setOnClickListener(v -> addComment());
 
-        return view;
-    }
-
-    /**
-     * Configura el reproductor de audio, incluyendo los controles de reproducción y la barra de progreso.
-     */
-    private void setupAudioPlayer() {
-        handler = new Handler();
-
         // Configurar botón de Play/Pause
         btnPlayPause.setOnClickListener(v -> {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.pause();
-                btnPlayPause.setText("Reproducir");
+            if (isPlaying) {
+                pauseAudio();
             } else {
-                mediaPlayer.start();
-                btnPlayPause.setText("Pausar");
-                updateSeekBar();
+                playAudio();
             }
         });
 
-        // Configurar SeekBar
-        audioSeekBar.setMax(mediaPlayer.getDuration());
+        // Configurar el listener de la SeekBar
         audioSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            boolean userTouch = false;
+            boolean userIsSeeking = false;
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && mediaPlayer != null) {
-                    mediaPlayer.seekTo(progress);
-                    audioSeekBar.setProgress(progress);
+                if (fromUser && isBound && audioService != null) {
+                    // Opcional: Puedes mostrar la posición actual mientras el usuario arrastra
                 }
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                userTouch = true;
+                userIsSeeking = true;
+                // Opcional: Pausar la actualización automática mientras el usuario interactúa
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                userTouch = false;
+                if (isBound && audioService != null) {
+                    int newPosition = seekBar.getProgress();
+                    audioService.seekTo(newPosition);
+                    Log.d(TAG, "SeekBar movida a: " + newPosition);
+                }
+                userIsSeeking = false;
             }
         });
 
-        // Listener para cuando la reproducción finaliza
-        mediaPlayer.setOnCompletionListener(mp -> {
-            btnPlayPause.setText("Reproducir");
-            audioSeekBar.setProgress(0);
-            handler.removeCallbacks(updateSeekBarRunnable);
-        });
-
-        Log.d(TAG, "MediaPlayer configurado correctamente");
+        return view;
     }
 
     /**
-     * Actualiza la barra de progreso del audio cada segundo.
+     * Vincula el fragmento al AudioService cuando el fragmento se inicia.
      */
-    private void updateSeekBar() {
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            audioSeekBar.setProgress(mediaPlayer.getCurrentPosition());
-            updateSeekBarRunnable = this::updateSeekBar;
-            handler.postDelayed(updateSeekBarRunnable, 1000);
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (audioResId != 0) {
+            Intent intent = new Intent(getContext(), AudioService.class);
+            getContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
         }
     }
 
     /**
-     * Carga los comentarios almacenados para el edificio actual desde un archivo.
+     * Desvincula el fragmento del AudioService cuando el fragmento se detiene.
+     */
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (isBound) {
+            getContext().unbindService(serviceConnection);
+            isBound = false;
+        }
+        handler.removeCallbacks(updateSeekBarRunnable);
+    }
+
+    /**
+     * Inicializa la SeekBar una vez que el servicio está vinculado.
+     */
+    private void initializeSeekBar() {
+        if (audioService != null) {
+            int duration = audioService.getDuration();
+            audioSeekBar.setMax(duration);
+            audioSeekBar.setEnabled(true);
+
+            // Actualizar la SeekBar periódicamente
+            updateSeekBarRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (audioService != null && isPlaying) {
+                        int currentPosition = audioService.getCurrentPosition();
+                        audioSeekBar.setProgress(currentPosition);
+                        handler.postDelayed(this, 1000); // Actualizar cada segundo
+                    }
+                }
+            };
+            handler.post(updateSeekBarRunnable);
+        }
+    }
+
+    /**
+     * Verifica y solicita el permiso de notificación en tiempo de ejecución si es necesario.
+     */
+    private void checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Solicitar el permiso
+                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        REQUEST_CODE_POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+    /**
+     * Maneja la respuesta de la solicitud de permisos.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_POST_NOTIFICATIONS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permiso otorgado, puedes continuar
+                Log.d(TAG, "Permiso de notificación otorgado");
+            } else {
+                // Permiso denegado, notifica al usuario que las notificaciones están deshabilitadas
+                Toast.makeText(getContext(),
+                        "Permiso de notificación denegado. Algunas funcionalidades pueden no funcionar correctamente.",
+                        Toast.LENGTH_LONG).show();
+                Log.w(TAG, "Permiso de notificación denegado");
+            }
+        }
+    }
+
+    /**
+     * Inicia la reproducción de audio enviando una intención al AudioService.
+     */
+    private void playAudio() {
+        if (audioResId == 0) {
+            Toast.makeText(getContext(), "No hay audio para reproducir", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent playIntent = new Intent(getContext(), AudioService.class);
+        playIntent.setAction(AudioService.ACTION_PLAY);
+        playIntent.putExtra(AudioService.EXTRA_AUDIO_RES_ID, audioResId);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            requireContext().startForegroundService(playIntent);
+        } else {
+            requireContext().startService(playIntent);
+        }
+
+        btnPlayPause.setText("Pausar");
+        isPlaying = true;
+        Log.d(TAG, "Enviado intent para reproducir audio");
+
+        // Iniciar la actualización de la SeekBar
+        if (isBound) {
+            initializeSeekBar();
+        }
+    }
+
+    /**
+     * Pausa la reproducción de audio enviando una intención al AudioService.
+     */
+    private void pauseAudio() {
+        Intent pauseIntent = new Intent(getContext(), AudioService.class);
+        pauseIntent.setAction(AudioService.ACTION_PAUSE);
+        requireContext().startService(pauseIntent);
+
+        btnPlayPause.setText("Reproducir");
+        isPlaying = false;
+        Log.d(TAG, "Enviado intent para pausar audio");
+    }
+
+    /**
+     * Carga los comentarios almacenados para el edificio actual desde la base de datos.
      */
     private void loadComments() {
         new Thread(() -> {
@@ -227,7 +358,7 @@ public class DetailFragment extends Fragment {
     }
 
     /**
-     * Agrega un nuevo comentario a la lista y lo guarda en el archivo correspondiente.
+     * Agrega un nuevo comentario a la lista y lo guarda en la base de datos.
      */
     private void addComment() {
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("UserPrefs", getActivity().MODE_PRIVATE);
@@ -258,31 +389,13 @@ public class DetailFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Liberar el MediaPlayer para evitar fugas de memoria
-        if (mediaPlayer != null) {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.stop();
-            }
-            mediaPlayer.release();
-            mediaPlayer = null;
-            Log.d(TAG, "MediaPlayer liberado");
-        }
-
-        // Remover callbacks pendientes
-        if (handler != null && updateSeekBarRunnable != null) {
-            handler.removeCallbacks(updateSeekBarRunnable);
+        if (isPlaying) {
+            pauseAudio();
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        // Pausar el MediaPlayer si está reproduciendo
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-            btnPlayPause.setText("Reproducir");
-            Log.d(TAG, "MediaPlayer pausado en onPause");
-        }
     }
-
 }
