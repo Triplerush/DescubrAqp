@@ -15,13 +15,17 @@ import com.example.lab4_fragments.dao.mansion.MansionDao;
 import com.example.lab4_fragments.dao.mansion.Door;
 import com.example.lab4_fragments.dao.mansion.RoomEntity;
 import com.example.lab4_fragments.dao.mansion.RoomInfo;
+import com.example.lab4_fragments.dao.user.User;
+import com.example.lab4_fragments.dao.user.UserDao;
 
-@Database(entities = {RoomEntity.class, Door.class, RoomInfo.class, Comment.class, Categoria.class, Building.class,}, version = 2)
+@Database(entities = {RoomEntity.class, Door.class, RoomInfo.class, Comment.class, Categoria.class, Building.class, User.class}, version = 1)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract CommentDao commentDao();
     public abstract MansionDao mansionDao();
     public abstract CategoriaDao categoriaDao();
     public abstract BuildingDao buildingDao();
+    public abstract UserDao userDao();
+
     private static volatile AppDatabase INSTANCE;
 
     public static AppDatabase getInstance(Context context) {
@@ -38,4 +42,5 @@ public abstract class AppDatabase extends RoomDatabase {
         return INSTANCE;
     }
 }
+
 
