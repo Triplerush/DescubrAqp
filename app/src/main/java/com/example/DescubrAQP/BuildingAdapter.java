@@ -1,5 +1,8 @@
 package com.example.DescubrAQP;
 
+import static androidx.core.content.ContentProviderCompat.requireContext;
+
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,11 +13,12 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.DescubrAQP.dao.building.Building;
+import com.example.DescubrAQP.database.AppDatabase;
 
 import java.util.List;
 
 public class BuildingAdapter extends RecyclerView.Adapter<BuildingAdapter.BuildingViewHolder> {
-
+    private AppDatabase appDatabase;
     private List<Building> buildingList;
     private OnBuildingClickListener onBuildingClickListener;
 
@@ -22,9 +26,10 @@ public class BuildingAdapter extends RecyclerView.Adapter<BuildingAdapter.Buildi
         void onBuildingClick(int position);
     }
 
-    public BuildingAdapter(List<Building> buildingList, OnBuildingClickListener onBuildingClickListener) {
+    public BuildingAdapter(Context context,List<Building> buildingList, OnBuildingClickListener onBuildingClickListener) {
         this.buildingList = buildingList;
         this.onBuildingClickListener = onBuildingClickListener;
+        this.appDatabase = AppDatabase.getInstance(context); // Inicializar AppDatabase
     }
 
     @NonNull
@@ -39,7 +44,15 @@ public class BuildingAdapter extends RecyclerView.Adapter<BuildingAdapter.Buildi
     public void onBindViewHolder(@NonNull BuildingViewHolder holder, int position) {
         Building building = buildingList.get(position);
         holder.title.setText(building.getTitle());
-        holder.category.setText(building.getCategoryId().toString()); // Establecer categoría
+        // Consultar el nombre de la categoría desde la base de datos
+        if (building.getCategoryId() != null) {
+            new Thread(() -> {
+                String categoryName = appDatabase.categoriaDao().getCategory(building.getCategoryId()).getCategoryName();
+                holder.itemView.post(() -> holder.category.setText(categoryName));
+            }).start();
+        } else {
+            holder.category.setText("Sin Categoría"); // Texto predeterminado si no hay categoría
+        }
         holder.description.setText(building.getDescription());
         holder.image.setImageResource(Integer.parseInt(building.getImageResId()));
 

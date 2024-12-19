@@ -72,7 +72,7 @@ public class EdificacionesFragment extends Fragment {
         filteredBuildingList.addAll(buildingList);
 
         // Inicializar el adaptador con la lista filtrada
-        buildingAdapter = new BuildingAdapter(filteredBuildingList, position -> {
+        buildingAdapter = new BuildingAdapter(getContext(),filteredBuildingList, position -> {
             // Manejar el clic en el elemento
             Building selectedBuilding = filteredBuildingList.get(position);
             int buildingId = buildingList.indexOf(selectedBuilding); // Obtener el índice en la lista original
