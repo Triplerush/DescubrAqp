@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -166,7 +167,7 @@ public class MarkerManager {
         });
 
         detallesButton.setOnClickListener(v -> {
-            homeFragment.navigateToDetailFragment(buildingRepository.getBuildingList().indexOf(building));
+            homeFragment.navigateToDetailFragment(building.getBuildingId());
             if (markerPopup.isShowing()) {
                 markerPopup.dismiss();
             }

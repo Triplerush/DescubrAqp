@@ -70,7 +70,6 @@ public class EdificacionesFragment extends Fragment {
         // Inicializar BuildingRepository y cargar la lista de edificaciones
         buildingRepository = new BuildingRepository(getContext());
         buildingList = buildingRepository.getBuildingList();
-        buildingRepository.initializeBuildings(requireContext());
         filteredBuildingList.addAll(buildingList);
 
         // Inicializar el adaptador con la lista filtrada
