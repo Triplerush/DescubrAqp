@@ -4,12 +4,12 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-import com.example.DescubrAQP.adapters.BuildingAdapter;
+// import com.example.DescubrAQP.adapters.BuildingAdapter;
 import com.example.DescubrAQP.data.dao.building.Building;
 
 public class BuildingAdapterTest {
 
-    private BuildingAdapter adapter;
+   // private BuildingAdapter adapter;
     private List<Building> buildings;
 
 /*    @Before
