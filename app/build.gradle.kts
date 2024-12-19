@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.lab4_fragments"
+    namespace = "com.example.DescubrAQP"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.lab4_fragments"
+        applicationId = "com.example.DescubrAQP"
         minSdk = 29
         targetSdk = 34
         versionCode = 1

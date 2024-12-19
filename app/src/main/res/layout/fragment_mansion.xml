@@ -5,7 +5,7 @@
     android:background="#FF8989"
     >
 
-    <com.example.lab4_fragments.views.MansionView
+    <com.example.DescubrAQP.views.MansionView
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
