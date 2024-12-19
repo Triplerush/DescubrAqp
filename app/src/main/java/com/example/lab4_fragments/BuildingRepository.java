@@ -190,4 +190,5 @@ public class BuildingRepository {
     public List<Categoria> getAllCategorias() {
         return appDatabase.categoriaDao().getAllCategorias();
     }
+
 }
