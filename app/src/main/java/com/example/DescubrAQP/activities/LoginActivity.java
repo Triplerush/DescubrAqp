@@ -1,4 +1,4 @@
-package com.example.DescubrAQP;
+package com.example.DescubrAQP.activities;
 
 import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
@@ -9,6 +9,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+
+import com.example.DescubrAQP.R;
 import com.example.DescubrAQP.fragments.StartFragment;
 
 public class LoginActivity extends AppCompatActivity {

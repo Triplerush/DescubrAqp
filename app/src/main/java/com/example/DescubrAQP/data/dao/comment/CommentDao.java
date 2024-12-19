@@ -1,4 +1,4 @@
-package com.example.DescubrAQP.dao.comment;
+package com.example.DescubrAQP.data.dao.comment;
 
 import androidx.room.Dao;
 import androidx.room.Insert;

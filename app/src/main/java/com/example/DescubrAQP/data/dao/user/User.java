@@ -1,4 +1,4 @@
-package com.example.DescubrAQP.dao.user;
+package com.example.DescubrAQP.data.dao.user;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;

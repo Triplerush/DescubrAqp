@@ -21,11 +21,11 @@ import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import com.example.DescubrAQP.dao.building.Building;
 import com.example.DescubrAQP.BuildingAdapter;
-import com.example.DescubrAQP.BuildingRepository;
+import com.example.DescubrAQP.data.dao.building.Building;
+import com.example.DescubrAQP.data.repositories.BuildingRepository;
 import com.example.DescubrAQP.R;
-import com.example.DescubrAQP.dao.categoria.Categoria;
+import com.example.DescubrAQP.data.dao.categoria.Categoria;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,12 +72,27 @@ public class EdificacionesFragment extends Fragment {
         buildingList = buildingRepository.getBuildingList();
         filteredBuildingList.addAll(buildingList);
 
+        new Thread(() -> {
+            try {
+                Future<List<Categoria>> futureCategorias = buildingRepository.getAllCategorias();
+                List<Categoria> categorias = futureCategorias.get();
+
+                synchronized (cachedCategorias) {
+                    cachedCategorias.clear();
+                    cachedCategorias.addAll(categorias);
+                }
+
+                Log.d("Categoria", "Categorías precargadas: " + cachedCategorias.size());
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
         // Inicializar el adaptador con la lista filtrada
         buildingAdapter = new BuildingAdapter(getContext(),filteredBuildingList, position -> {
             // Manejar el clic en el elemento
             Building selectedBuilding = filteredBuildingList.get(position);
-            int buildingId = buildingList.indexOf(selectedBuilding); // Obtener el índice en la lista original
-            DetailFragment detailFragment = DetailFragment.newInstance(buildingId);
+            DetailFragment detailFragment = DetailFragment.newInstance(selectedBuilding.getBuildingId());
             FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
             fragmentTransaction.replace(R.id.fragmentContainerView, detailFragment);
@@ -149,29 +164,16 @@ public class EdificacionesFragment extends Fragment {
     private List<Categoria> cachedCategorias = new ArrayList<>();
 
     public String getCategoryNameById(int categoryId) {
-        // Cargar y guardar las categorías en una lista global
-        new Thread(() -> {
-            try {
-                Future<List<Categoria>> futureCategorias = buildingRepository.getAllCategorias();
-                List<Categoria> categorias = futureCategorias.get();
-
-                // Guardar en la lista global
-                cachedCategorias.clear();
-                cachedCategorias.addAll(categorias);
-
-                Log.d("Categoria", "Categorías almacenadas: " + cachedCategorias.size());
-
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
-        for(Categoria categoria : cachedCategorias){
-            if(categoria.getCategoryId()==categoryId){
-                return categoria.getCategoryName();
+        synchronized (cachedCategorias) {
+            for (Categoria categoria : cachedCategorias) {
+                if (categoria.getCategoryId() == categoryId) {
+                    return categoria.getCategoryName();
+                }
             }
         }
         return ""; // Retorna cadena vacía si no encuentra coincidencias
     }
+
     private void updateEmptyView() {
         if (filteredBuildingList.isEmpty()) {
             recyclerView.setVisibility(View.GONE);

@@ -4,7 +4,8 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-import com.example.DescubrAQP.dao.building.Building;
+import com.example.DescubrAQP.adapters.BuildingAdapter;
+import com.example.DescubrAQP.data.dao.building.Building;
 
 public class BuildingAdapterTest {
 

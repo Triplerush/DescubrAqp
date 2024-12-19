@@ -7,7 +7,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,8 +16,8 @@ import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import com.example.DescubrAQP.dao.building.Building;
-import com.example.DescubrAQP.BuildingRepository;
+import com.example.DescubrAQP.data.dao.building.Building;
+import com.example.DescubrAQP.data.repositories.BuildingRepository;
 import com.example.DescubrAQP.R;
 import com.example.DescubrAQP.fragments.HomeFragment;
 import com.google.android.gms.maps.GoogleMap;
@@ -42,44 +41,54 @@ public class MarkerManager {
     private List<Marker> allMarkers = new ArrayList<>();
     private Map<Integer, Bitmap> markerWithLabelCache = new HashMap<>();
     private Map<Integer, Bitmap> markerWithoutLabelCache = new HashMap<>();
+    private Map<Integer, Building> buildingMap;
 
     public MarkerManager(Context context, BuildingRepository buildingRepository) {
         this.context = context;
         this.buildingRepository = buildingRepository;
+
+        buildingMap = new HashMap<>();
+        List<Building> buildingList = buildingRepository.getBuildingList();
+        for (Building building : buildingList) {
+            buildingMap.put(building.getBuildingId(), building);
+        }
     }
 
     public void addMarkersToMap(GoogleMap mMap) {
-        List<Building> buildingList = buildingRepository.getBuildingList();
-        for (int i = 0; i < buildingList.size(); i++) {
-            Building building = buildingList.get(i);
+        for (Map.Entry<Integer, Building> entry : buildingMap.entrySet()) {
+            Building building = entry.getValue(); // Obtener el objeto Building
+            int buildingId = entry.getKey();     // Obtener el ID del Building
+
             LatLng position = new LatLng(building.getLatitude(), building.getLongitude());
-            Bitmap customMarker = createCustomMarkerWithoutLabel(i);
+            Bitmap customMarker = createCustomMarkerWithoutLabel(buildingId);
 
             Marker marker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
                     .position(position)
                     .icon(BitmapDescriptorFactory.fromBitmap(customMarker))
-                    .snippet(String.valueOf(i)));
+                    .snippet(String.valueOf(buildingId)));
             if (marker != null) {
-                marker.setTag(i);
+                marker.setTag(buildingId);
                 allMarkers.add(marker);
             }
         }
     }
 
     public void updateMarkerIcons(GoogleMap mMap, float currentZoom, float zoomThreshold) {
-        List<Building> buildingList = buildingRepository.getBuildingList();
         for (Marker marker : allMarkers) {
             if (marker.getTag() instanceof Integer) {
                 int buildingId = (Integer) marker.getTag();
-                Building building = buildingList.get(buildingId);
-                if (currentZoom >= zoomThreshold) {
-                    marker.setIcon(BitmapDescriptorFactory.fromBitmap(createCustomMarkerWithLabel(buildingId, building.getTitle())));
-                } else {
-                    marker.setIcon(BitmapDescriptorFactory.fromBitmap(createCustomMarkerWithoutLabel(buildingId)));
+                Building building = buildingMap.get(buildingId); // Obtener el edificio desde el mapa
+                if (building != null) {
+                    if (currentZoom >= zoomThreshold) {
+                        marker.setIcon(BitmapDescriptorFactory.fromBitmap(createCustomMarkerWithLabel(buildingId, building.getTitle())));
+                    } else {
+                        marker.setIcon(BitmapDescriptorFactory.fromBitmap(createCustomMarkerWithoutLabel(buildingId)));
+                    }
                 }
             }
         }
     }
+
 
     private Bitmap createCustomMarkerWithoutLabel(int buildingId) {
         if (markerWithoutLabelCache.containsKey(buildingId)) {
@@ -126,10 +135,11 @@ public class MarkerManager {
         Object tag = marker.getTag();
         if (tag instanceof Integer) {
             int buildingId = (Integer) tag;
-            Building building = buildingRepository.getBuildingList().get(buildingId);
+            Building building = buildingMap.get(buildingId);
 
             Projection projection = mMap.getProjection();
             Point screenPos = projection.toScreenLocation(marker.getPosition());
+            assert building != null;
             showMarkerPopup(activity, homeFragment, building, screenPos, mMap);
             return true;
         }

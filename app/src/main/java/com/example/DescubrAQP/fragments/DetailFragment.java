@@ -28,13 +28,13 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.DescubrAQP.dao.building.Building;
-import com.example.DescubrAQP.BuildingRepository;
-import com.example.DescubrAQP.dao.comment.Comment;
-import com.example.DescubrAQP.CommentAdapter;
+import com.example.DescubrAQP.data.dao.building.Building;
+import com.example.DescubrAQP.data.repositories.BuildingRepository;
+import com.example.DescubrAQP.data.dao.comment.Comment;
+import com.example.DescubrAQP.adapters.CommentAdapter;
 import com.example.DescubrAQP.R;
-import com.example.DescubrAQP.AudioService;
-import com.example.DescubrAQP.database.AppDatabase;
+import com.example.DescubrAQP.services.AudioService;
+import com.example.DescubrAQP.data.database.AppDatabase;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -110,9 +110,6 @@ public class DetailFragment extends Fragment {
 
         btnView360 = view.findViewById(R.id.btn_view_360);
 
-
-
-
         btnViewMansion = view.findViewById(R.id.btn_view_mansion);
         commentInput = view.findViewById(R.id.comment_input);
         submitCommentButton = view.findViewById(R.id.submit_comment_button);
@@ -131,68 +128,30 @@ public class DetailFragment extends Fragment {
         buildingRepository = new BuildingRepository(getContext());
         List<Building> buildingList = buildingRepository.getBuildingList();
 
-        // Verificar si el ID del edificio es válido
-        if (buildingId >= 0 && buildingId < buildingList.size()) {
-            building = buildingList.get(buildingId);
-            titleTextView.setText(building.getTitle());
-            descriptionTextView.setText(building.getDescription());
-            imageView.setImageResource(Integer.parseInt(building.getImageResId()));
+        new Thread(() -> {
+            building = appDatabase.buildingDao().getBuildingById(buildingId);
 
-            // Para el botón Vista360
-            if (building.getTitle().equals("Catedral")) {
-                btnView360.setEnabled(true);
-                btnView360.setOnClickListener(v -> {
-                    Vista360Fragment vista360Fragment = new Vista360Fragment();
-                    requireActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.fragmentContainerView, vista360Fragment)
-                            .addToBackStack(null)
-                            .commit();
+            if (building != null) {
+                // Actualizar las vistas en el hilo principal
+                requireActivity().runOnUiThread(() -> {
+                    titleTextView.setText(building.getTitle());
+                    descriptionTextView.setText(building.getDescription());
+                    imageView.setImageResource(Integer.parseInt(building.getImageResId()));
+
+                    // Configurar botones según el título del edificio
+                    configureButtons(building);
                 });
             } else {
-                btnView360.setOnClickListener(v -> {
-                    Toast.makeText(getContext(), "En construcción", Toast.LENGTH_SHORT).show();
+                // Manejar el caso donde no se encuentra el edificio
+                requireActivity().runOnUiThread(() -> {
+                    titleTextView.setText("Edificación no encontrada");
+                    descriptionTextView.setText("");
+                    imageView.setImageResource(R.drawable.mapimage);
+                    Toast.makeText(getContext(), "Edificación no encontrada", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Edificio no encontrado para el ID: " + buildingId);
                 });
-                btnView360.setEnabled(false);
             }
-
-// Para el botón Mansión
-            if (building.getTitle().equals("Mansión del Fundador")) {
-                btnViewMansion.setEnabled(true);
-                btnViewMansion.setOnClickListener(v -> {
-                    MansionFragment mansionFragment = new MansionFragment();
-                    requireActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.fragmentContainerView, mansionFragment)
-                            .addToBackStack(null)
-                            .commit();
-                });
-            } else {
-                btnViewMansion.setOnClickListener(v -> {
-                    Toast.makeText(getContext(), "En construcción", Toast.LENGTH_SHORT).show();
-                });
-                btnViewMansion.setEnabled(false);
-            }
-
-            // Configurar el audio
-            String audioFileName = "audedif" + (buildingId + 1); // Sin extensión
-            audioResId = getResources().getIdentifier(audioFileName, "raw", getContext().getPackageName());
-
-            if (audioResId != 0) { // Verificar que el recurso exista
-                btnPlayPause.setEnabled(true);
-                audioSeekBar.setEnabled(false); // Inicialmente deshabilitada hasta que se vincule el servicio
-            } else {
-                Toast.makeText(getContext(), "Archivo de audio no encontrado: " + audioFileName, Toast.LENGTH_SHORT).show();
-                Log.e(TAG, "Recurso de audio no encontrado: " + audioFileName);
-                btnPlayPause.setEnabled(false);
-                audioSeekBar.setEnabled(false);
-            }
-        } else {
-            // Manejar el caso donde el edificio no se encuentra
-            titleTextView.setText("Edificación no encontrada");
-            descriptionTextView.setText("");
-            imageView.setImageResource(R.drawable.mapimage);
-            Toast.makeText(getContext(), "Edificación no encontrada", Toast.LENGTH_SHORT).show();
-            Log.e(TAG, "ID de edificio inválido: " + buildingId);
-        }
+        }).start();
 
         // Cargar comentarios existentes
         loadComments();
@@ -425,6 +384,56 @@ public class DetailFragment extends Fragment {
             Toast.makeText(getContext(), "Por favor, ingresa un comentario.", Toast.LENGTH_SHORT).show();
         }
     }
+
+    private void configureButtons(Building building) {
+        // Configurar el botón Vista360
+        if (building.getTitle().equals("Catedral")) {
+            btnView360.setEnabled(true);
+            btnView360.setOnClickListener(v -> {
+                Vista360Fragment vista360Fragment = new Vista360Fragment();
+                requireActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainerView, vista360Fragment)
+                        .addToBackStack(null)
+                        .commit();
+            });
+        } else {
+            btnView360.setEnabled(false);
+            btnView360.setOnClickListener(v -> {
+                Toast.makeText(getContext(), "En construcción", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // Configurar el botón Vista Mansión
+        if (building.getTitle().equals("Mansión del Fundador")) {
+            btnViewMansion.setEnabled(true);
+            btnViewMansion.setOnClickListener(v -> {
+                MansionFragment mansionFragment = new MansionFragment();
+                requireActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragmentContainerView, mansionFragment)
+                        .addToBackStack(null)
+                        .commit();
+            });
+        } else {
+            btnViewMansion.setEnabled(false);
+            btnViewMansion.setOnClickListener(v -> {
+                Toast.makeText(getContext(), "En construcción", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // Configurar el audio
+        String audioFileName = "audedif" + (buildingId); // Nombre del archivo de audio
+        audioResId = getResources().getIdentifier(audioFileName, "raw", getContext().getPackageName());
+
+        if (audioResId != 0) {
+            btnPlayPause.setEnabled(true);
+            audioSeekBar.setEnabled(false); // Inicialmente deshabilitada
+        } else {
+            btnPlayPause.setEnabled(false);
+            audioSeekBar.setEnabled(false);
+            Log.e(TAG, "Archivo de audio no encontrado: " + audioFileName);
+        }
+    }
+
 
     @Override
     public void onDestroy() {

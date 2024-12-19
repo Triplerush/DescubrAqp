@@ -1,4 +1,4 @@
-package com.example.DescubrAQP.dao.categoria;
+package com.example.DescubrAQP.data.dao.categoria;
 
 import androidx.room.Dao;
 import androidx.room.Insert;

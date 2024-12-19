@@ -7,7 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFECEC"
-    tools:context=".HomeActivity">
+    tools:context=".activities.HomeActivity">
 
     <!-- Toolbar Añadida -->
     <androidx.appcompat.widget.Toolbar

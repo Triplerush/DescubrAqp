@@ -2,10 +2,6 @@ package com.example.DescubrAQP;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
-import com.example.DescubrAQP.dao.building.Building;
-
 public class BuildingTest {
 
     @Test

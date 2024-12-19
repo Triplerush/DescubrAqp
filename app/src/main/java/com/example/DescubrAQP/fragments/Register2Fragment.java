@@ -11,8 +11,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.DescubrAQP.R;
-import com.example.DescubrAQP.dao.user.User;
-import com.example.DescubrAQP.database.AppDatabase;
+import com.example.DescubrAQP.data.dao.user.User;
+import com.example.DescubrAQP.data.database.AppDatabase;
 import com.example.DescubrAQP.view_models.SharedViewModel;
 
 public class Register2Fragment extends Fragment {

@@ -7,11 +7,11 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 
-import com.example.DescubrAQP.dao.mansion.Door;
+import com.example.DescubrAQP.data.dao.mansion.Door;
 import com.example.DescubrAQP.R;
-import com.example.DescubrAQP.dao.mansion.RoomEntity;
-import com.example.DescubrAQP.dao.mansion.RoomInfo;
-import com.example.DescubrAQP.database.AppDatabase;
+import com.example.DescubrAQP.data.dao.mansion.RoomEntity;
+import com.example.DescubrAQP.data.dao.mansion.RoomInfo;
+import com.example.DescubrAQP.data.database.AppDatabase;
 import com.example.DescubrAQP.fragments.DetailRoomFragment;
 
 import java.io.BufferedReader;

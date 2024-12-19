@@ -25,10 +25,10 @@
         tools:targetApi="34" >
 
         <activity
-            android:name=".HomeActivity"
+            android:name=".activities.HomeActivity"
             android:exported="false" />
         <activity
-            android:name=".LoginActivity"
+            android:name=".activities.LoginActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -41,7 +41,7 @@
             android:value="AIzaSyBQliZ7b31uC2QyNEzVI2ZXWW9soktujWI"/>
 
         <service
-            android:name=".AudioService"
+            android:name=".services.AudioService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
     </application>

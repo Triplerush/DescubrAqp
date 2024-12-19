@@ -1,4 +1,4 @@
-package com.example.DescubrAQP.dao.mansion;
+package com.example.DescubrAQP.data.dao.mansion;
 
 import androidx.room.Dao;
 import androidx.room.Insert;

@@ -1,4 +1,4 @@
-package com.example.DescubrAQP;
+package com.example.DescubrAQP.services;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -12,6 +12,8 @@ import android.os.IBinder;
 import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+
+import com.example.DescubrAQP.R;
 
 public class AudioService extends Service {
 

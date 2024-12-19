@@ -1,11 +1,11 @@
-package com.example.DescubrAQP.dao.building;
+package com.example.DescubrAQP.data.dao.building;
 
 
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
 
-import com.example.DescubrAQP.dao.categoria.Categoria;
+import com.example.DescubrAQP.data.dao.categoria.Categoria;
 
 /**
  * Clase Building como entidad para Room.

@@ -1,11 +1,11 @@
-package com.example.DescubrAQP;
+package com.example.DescubrAQP.data.repositories;
 
 import android.content.Context;
 import android.util.Log;
 
-import com.example.DescubrAQP.dao.building.Building;
-import com.example.DescubrAQP.dao.categoria.Categoria;
-import com.example.DescubrAQP.database.AppDatabase;
+import com.example.DescubrAQP.data.dao.building.Building;
+import com.example.DescubrAQP.data.dao.categoria.Categoria;
+import com.example.DescubrAQP.data.database.AppDatabase;
 
 import java.io.BufferedReader;
 import java.io.IOException;

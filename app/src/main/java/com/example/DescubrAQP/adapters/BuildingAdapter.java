@@ -1,7 +1,5 @@
 package com.example.DescubrAQP;
 
-import static androidx.core.content.ContentProviderCompat.requireContext;
-
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,8 +10,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.DescubrAQP.dao.building.Building;
-import com.example.DescubrAQP.database.AppDatabase;
+import com.example.DescubrAQP.data.dao.building.Building;
+import com.example.DescubrAQP.data.database.AppDatabase;
 
 import java.util.List;
 

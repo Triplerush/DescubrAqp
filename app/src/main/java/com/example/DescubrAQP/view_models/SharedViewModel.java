@@ -3,7 +3,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.DescubrAQP.dao.building.Building;
+import com.example.DescubrAQP.data.dao.building.Building;
 
 import java.util.List;
 

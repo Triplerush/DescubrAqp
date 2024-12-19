@@ -1,4 +1,4 @@
-package com.example.DescubrAQP;
+package com.example.DescubrAQP.activities;
 
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.example.DescubrAQP.R;
 import com.example.DescubrAQP.fragments.EdificacionesFragment;
 import com.example.DescubrAQP.fragments.HomeFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;

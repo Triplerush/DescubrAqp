@@ -7,17 +7,18 @@ import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.example.DescubrAQP.BuildingRepository;
+import com.example.DescubrAQP.data.repositories.BuildingRepository;
 import com.example.DescubrAQP.R;
-import com.example.DescubrAQP.HomeActivity;
-import com.example.DescubrAQP.dao.user.User;
-import com.example.DescubrAQP.database.AppDatabase;
+import com.example.DescubrAQP.activities.HomeActivity;
+import com.example.DescubrAQP.data.dao.user.User;
+import com.example.DescubrAQP.data.database.AppDatabase;
 
 public class LoginFragment extends Fragment {
     private BuildingRepository buildingRepository;
@@ -34,7 +35,7 @@ public class LoginFragment extends Fragment {
         rootView.findViewById(R.id.btnBack).setOnClickListener(v -> goBackToStart());
         buildingRepository = new BuildingRepository(getContext());
         buildingRepository.initializeBuildings(requireContext());
-
+        Log.d("hola","a");
         return rootView;
     }
 

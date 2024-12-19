@@ -1,4 +1,4 @@
-package com.example.DescubrAQP;
+package com.example.DescubrAQP.adapters;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,7 +7,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.DescubrAQP.dao.comment.Comment;
+import com.example.DescubrAQP.R;
+import com.example.DescubrAQP.data.dao.comment.Comment;
 
 import java.util.List;
 

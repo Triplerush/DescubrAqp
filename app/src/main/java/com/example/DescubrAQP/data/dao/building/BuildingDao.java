@@ -1,4 +1,4 @@
-package com.example.DescubrAQP.dao.building;
+package com.example.DescubrAQP.data.dao.building;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -16,4 +16,7 @@ public interface BuildingDao {
 
     @Query("SELECT * FROM Buildings")
     List<Building> getAllBuildings();
+
+    @Query("SELECT * FROM Buildings WHERE buildingId = :id")
+    Building getBuildingById(int id);
 }

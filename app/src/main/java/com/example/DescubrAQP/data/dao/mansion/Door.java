@@ -1,24 +1,18 @@
-package com.example.DescubrAQP.dao.mansion;
+package com.example.DescubrAQP.data.dao.mansion;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "rooms")
-public class RoomEntity {
+@Entity(tableName = "doors")
+public class Door {
     @PrimaryKey(autoGenerate = true)
     private int id;
-    private String name;
     private float x1, y1, x2, y2;
 
-    public RoomEntity(String name, float x1, float y1, float x2, float y2) {
-        this.name = name;
+    public Door(float x1, float y1, float x2, float y2) {
         this.x1 = x1;
         this.y1 = y1;
         this.x2 = x2;
         this.y2 = y2;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public int getId() {
