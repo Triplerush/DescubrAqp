@@ -39,15 +39,15 @@
             android:layout_width="70dp"
             android:layout_height="50dp"
             android:layout_marginEnd="8dp"
-            android:backgroundTint="@color/red_main"
+            android:backgroundTint="#a35d5d"
             android:text="Ir"
             android:textSize="12sp" />
 
         <Button
             android:id="@+id/popup_btn_detalles"
             android:layout_width="70dp"
-            android:backgroundTint="@color/red_main"
             android:layout_height="50dp"
+            android:backgroundTint="#a35d5d"
             android:text="Ver" />
     </LinearLayout>
 
