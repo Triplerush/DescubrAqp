@@ -29,6 +29,8 @@ import com.example.DescubrAQP.dao.categoria.Categoria;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * Fragmento que muestra la lista de edificaciones.
@@ -145,11 +147,27 @@ public class EdificacionesFragment extends Fragment {
         // Actualizar la vista vacía
         updateEmptyView();
     }
+    private List<Categoria> cachedCategorias = new ArrayList<>();
+
     public String getCategoryNameById(int categoryId) {
-        // Aquí deberías tener una lista de categorías o consultar desde la base de datos
-        List<Categoria> categoriaList = buildingRepository.getAllCategorias(); // Un método que retorna todas las categorías
-        for (Categoria categoria : categoriaList) {
-            if (categoria.getCategoryId() == categoryId) {
+        // Cargar y guardar las categorías en una lista global
+        new Thread(() -> {
+            try {
+                Future<List<Categoria>> futureCategorias = buildingRepository.getAllCategorias();
+                List<Categoria> categorias = futureCategorias.get();
+
+                // Guardar en la lista global
+                cachedCategorias.clear();
+                cachedCategorias.addAll(categorias);
+
+                Log.d("Categoria", "Categorías almacenadas: " + cachedCategorias.size());
+
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+        for(Categoria categoria : cachedCategorias){
+            if(categoria.getCategoryId()==categoryId){
                 return categoria.getCategoryName();
             }
         }

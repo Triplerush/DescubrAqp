@@ -187,8 +187,11 @@ public class BuildingRepository {
             return new ArrayList<>(); // Retorna una lista vacía en caso de error
         }
     }
-    public List<Categoria> getAllCategorias() {
-        return appDatabase.categoriaDao().getAllCategorias();
+    public Future<List<Categoria>> getAllCategorias() {
+        return executorService.submit(() -> {
+            Log.d("BuildingRepository", "Consultando categorías en un hilo en segundo plano...");
+            return appDatabase.categoriaDao().getAllCategorias();
+        });
     }
 
 }
