@@ -107,7 +107,12 @@ public class DetailFragment extends Fragment {
         ImageView imageView = view.findViewById(R.id.image_view);
         TextView titleTextView = view.findViewById(R.id.title_text_view);
         TextView descriptionTextView = view.findViewById(R.id.description_text_view);
+
         btnView360 = view.findViewById(R.id.btn_view_360);
+
+
+
+
         btnViewMansion = view.findViewById(R.id.btn_view_mansion);
         commentInput = view.findViewById(R.id.comment_input);
         submitCommentButton = view.findViewById(R.id.submit_comment_button);
@@ -132,6 +137,40 @@ public class DetailFragment extends Fragment {
             titleTextView.setText(building.getTitle());
             descriptionTextView.setText(building.getDescription());
             imageView.setImageResource(Integer.parseInt(building.getImageResId()));
+
+            // Para el botón Vista360
+            if (building.getTitle().equals("Catedral")) {
+                btnView360.setEnabled(true);
+                btnView360.setOnClickListener(v -> {
+                    Vista360Fragment vista360Fragment = new Vista360Fragment();
+                    requireActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragmentContainerView, vista360Fragment)
+                            .addToBackStack(null)
+                            .commit();
+                });
+            } else {
+                btnView360.setOnClickListener(v -> {
+                    Toast.makeText(getContext(), "En construcción", Toast.LENGTH_SHORT).show();
+                });
+                btnView360.setEnabled(false);
+            }
+
+// Para el botón Mansión
+            if (building.getTitle().equals("Mansión del Fundador")) {
+                btnViewMansion.setEnabled(true);
+                btnViewMansion.setOnClickListener(v -> {
+                    MansionFragment mansionFragment = new MansionFragment();
+                    requireActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragmentContainerView, mansionFragment)
+                            .addToBackStack(null)
+                            .commit();
+                });
+            } else {
+                btnViewMansion.setOnClickListener(v -> {
+                    Toast.makeText(getContext(), "En construcción", Toast.LENGTH_SHORT).show();
+                });
+                btnViewMansion.setEnabled(false);
+            }
 
             // Configurar el audio
             String audioFileName = "audedif" + (buildingId + 1); // Sin extensión
@@ -219,6 +258,7 @@ public class DetailFragment extends Fragment {
 
         return view;
     }
+
 
     /**
      * Vincula el fragmento al AudioService cuando el fragmento se inicia.

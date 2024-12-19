@@ -13,7 +13,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.example.lab4_fragments.fragments.DetailFragment;
 import com.example.lab4_fragments.fragments.EdificacionesFragment;
 import com.example.lab4_fragments.fragments.HomeFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -32,6 +31,12 @@ public class HomeActivity extends AppCompatActivity {
         // Configurar la Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        // Habilitar el botón de retroceso en la Toolbar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_arrow_back); // Icono personalizado
+        }
 
         // Ajusta los insets de la ventana para que no haya espacio en la parte inferior
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -76,6 +81,21 @@ public class HomeActivity extends AppCompatActivity {
     private void loadFragment(Fragment fragment) {
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.fragmentContainerView, fragment);
+        fragmentTransaction.addToBackStack(null); // Añadir a la pila de retroceso
         fragmentTransaction.commit();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            // Manejar el botón de retroceso
+            if (fragmentManager.getBackStackEntryCount() > 0) {
+                fragmentManager.popBackStack(); // Regresar al fragmento anterior
+            } else {
+                finish(); // Salir de la actividad si no hay más fragmentos en la pila
+            }
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

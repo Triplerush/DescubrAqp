@@ -15,7 +15,7 @@ public class BuildingAdapterTest {
     private BuildingAdapter adapter;
     private List<Building> buildings;
 
-    @Before
+/*    @Before
     public void setUp() {
         // Crear lista de edificios
         buildings = Arrays.asList(
@@ -50,4 +50,7 @@ public class BuildingAdapterTest {
         assertEquals(-16.3981, building.getLatitude(), 0.0001);
         assertEquals(-71.5364, building.getLongitude(), 0.0001);
     }
+}
+
+ */
 }

@@ -121,8 +121,17 @@ public class MansionView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            float touchX = event.getX();
-            float touchY = event.getY();
+            // Ajustar las coordenadas del toque al escalado y desplazamiento
+            float scale = 1.5f;
+            float offsetX = (getWidth() - (getWidth() * scale)) / 2;
+            float offsetY = (getHeight() - (getHeight() * scale)) / 2;
+
+            // Ajustar el desplazamiento vertical adicional
+            float additionalMarginY = 100; // Valor adicional para mover hacia abajo
+            offsetY += additionalMarginY;
+
+            float touchX = (event.getX() - offsetX) / scale;
+            float touchY = (event.getY() - offsetY) / scale;
 
             Log.d(TAG, "Touch detected at: (" + touchX + ", " + touchY + ")");
 
@@ -203,6 +212,21 @@ public class MansionView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        // Factor de escala para agrandar la gráfica
+        float scale = 1.5f;
+
+        // Calcular el desplazamiento para centrar el contenido
+        float offsetX = (getWidth() - (getWidth() * scale)) / 2;
+        float offsetY = (getHeight() - (getHeight() * scale)) / 2;
+
+        // Ajustar el desplazamiento vertical adicional
+        float additionalMarginY = 100; // Valor adicional para mover hacia abajo
+        offsetY += additionalMarginY;
+
+        canvas.save(); // Guardar el estado inicial del lienzo
+        canvas.translate(offsetX, offsetY); // Trasladar para centrar y ajustar
+        canvas.scale(scale, scale); // Aplicar el factor de escala
+
         // Dibujar los contornos de los cuartos
         for (RoomEntity room : rooms) {
             float x1 = room.getX1();
@@ -219,12 +243,8 @@ public class MansionView extends View {
             canvas.save(); // Guardar el estado actual del lienzo
             canvas.translate(textX, textY); // Mover el origen al centro del cuarto
             canvas.rotate(-90); // Rotar el lienzo 90 grados en sentido horario
-            // Ajustar la posición del texto para que esté centrado
             canvas.drawText(room.getName(), -paintTextVertical.measureText(room.getName()) / 2, 0, paintTextVertical);
             canvas.restore(); // Restaurar el estado original del lienzo
-
-            // Log de las coordenadas dibujadas
-            Log.d(TAG, "Dibujando " + room.getName() + " desde (" + x1 + ", " + y1 + ") a (" + x2 + ", " + y2 + ")");
         }
 
         // Dibujar las puertas como líneas amarillas
@@ -234,11 +254,11 @@ public class MansionView extends View {
             float doorX2 = door.getX2();
             float doorY2 = door.getY2();
             canvas.drawLine(doorX1, doorY1, doorX2, doorY2, paintDoor);
-
-            // Log de las coordenadas de puertas dibujadas
-            Log.d(TAG, "Dibujando Puerta desde (" + doorX1 + ", " + doorY1 + ") a (" + doorX2 + ", " + doorY2 + ")");
         }
+
+        canvas.restore(); // Restaurar el estado inicial del lienzo
     }
+
 
     private void insertInitialData(Context context, Runnable onInsertComplete) {
         new Thread(() -> {
